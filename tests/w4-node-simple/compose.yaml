@@ -1,0 +1,11 @@
+include:
+  - node/compose.yaml
+services:
+  test:
+    build:
+      context: ../..
+      dockerfile: tests/w4-node-simple/Dockerfile
+    depends_on:
+      - node
+    entrypoint: deno
+    command: test -A test.ts
