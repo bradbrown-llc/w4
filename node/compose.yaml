@@ -4,9 +4,3 @@ services:
       context: ..
       dockerfile: node/Dockerfile
     image: w4-node
-    healthcheck:
-      test: CMD curl -X POST --data '{"jsonrpc":"2.0","method":"eth_accounts","params":[],"id":1}'
-      interval: 1s
-      timeout: 1s
-      retries: 5
-      start_period: 5s
