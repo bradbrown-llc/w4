@@ -4,4 +4,3 @@ WORKDIR /w4
 COPY . .
 WORKDIR /w4/node
 RUN deno run -A prep.ts
-ENTRYPOINT deno run -A serve.ts
