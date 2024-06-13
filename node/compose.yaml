@@ -1,6 +1,0 @@
-services:
-  node:
-    build:
-      context: ..
-      dockerfile: node/Dockerfile
-    image: w4-node
