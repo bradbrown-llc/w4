@@ -19,6 +19,13 @@ globalThis.addEventListener('unhandledrejection', (e: Event) => {
 Deno.addSignalListener('SIGINT', callExitHandlers)
 Deno.addSignalListener('SIGTERM', callExitHandlers)
 
+type NodeMakeOptions = {
+    mount?: {
+        src:string
+        dst:string
+    }[]
+}
+
 export class Node {
 
     rpc:string
@@ -51,10 +58,11 @@ export class Node {
         this.traceTx = (hash:string) => methods.traceTx(rpc, hash)
     }
 
-    static async make() {
+    static async make(options?:NodeMakeOptions) {
 
         function dockerRun() {
             const args = [ 'run', '-d', '--rm', 'w4-node' ]
+            for (const m of options?.mount ?? []) args.splice(3, 0, '--mount', `type=bind,src=${m.src},dst=${m.dst}`)
             const cmdOut = new Deno.Command('docker', { args, stdout: 'piped', stderr: 'piped' }).outputSync()
             const id = new TextDecoder().decode(cmdOut.stdout).replace(/\n/, '')
             exitHandlers.push(() => new Deno.Command('docker', { args: [ 'stop', id ] }).output())
