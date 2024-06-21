@@ -42,6 +42,7 @@ export class Node {
     slot:(address:string,slot:bigint,tag:Tag)=>ReturnType<typeof methods.slot>
     code:(address:string,tag:Tag)=>ReturnType<typeof methods.code>
     traceTx:(hash:string)=>ReturnType<typeof methods.traceTx>
+    traceCall:(txCallObject:TxCallObject, tag:Tag)=>ReturnType<typeof methods.traceCall>
 
     constructor(rpc:string) {
         this.rpc = rpc
@@ -57,6 +58,7 @@ export class Node {
         this.slot = (address:string, slot:bigint, tag:Tag) => methods.slot(rpc, address, slot, tag)
         this.code = (address:string, tag:Tag) => methods.code(rpc, address, tag)
         this.traceTx = (hash:string) => methods.traceTx(rpc, hash)
+        this.traceCall = (txCallObject:TxCallObject, tag:Tag) => methods.traceCall(rpc, txCallObject, tag)
     }
 
     async wait(hash:string, waitFn:(node:Node,hash:string)=>Promise<void>=defaultWaitFn) {
