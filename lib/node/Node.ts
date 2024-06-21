@@ -13,6 +13,20 @@ type NodeMakeOptions = {
     }[]
 }
 
+// super basic wait fn, don't care about other wait fn's existing or concurrency
+// poll at an interval, timeout if X amount of time occurs
+async function defaultWaitFn(node:Node, hash:string) {
+    const interval = 250
+    const timeout = 30000
+    const start = Date.now()
+    while (true) {
+        const receipt = await node.receipt(hash)
+        if (receipt) return
+        if (Date.now() - start >= timeout) throw new Error('w4_defaultWaitFn timeout')
+        await new Promise(r => setTimeout(r, interval))
+    }
+}
+
 export class Node {
 
     rpc:string
@@ -43,6 +57,10 @@ export class Node {
         this.slot = (address:string, slot:bigint, tag:Tag) => methods.slot(rpc, address, slot, tag)
         this.code = (address:string, tag:Tag) => methods.code(rpc, address, tag)
         this.traceTx = (hash:string) => methods.traceTx(rpc, hash)
+    }
+
+    async wait(hash:string, waitFn:(node:Node,hash:string)=>Promise<void>=defaultWaitFn) {
+        await waitFn(this, hash)
     }
 
     static async make(options?:NodeMakeOptions) {
