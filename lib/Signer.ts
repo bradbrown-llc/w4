@@ -16,7 +16,7 @@ type SignTxOpts = {
     value?:bigint
     data?:string
     accessList?:[address:string,slots:string[]][]
-    eip:'eip-155'|'eip-2930'
+    eip?:'eip-155'|'eip-2930'
 }
 
 type SignerOpts = { secret:string }
