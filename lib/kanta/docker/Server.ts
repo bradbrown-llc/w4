@@ -1,7 +1,7 @@
 // import { fromFileUrl } from 'https://deno.land/std@0.211.0/path/from_file_url.ts'
 import * as semver from "https://deno.land/x/semver@v1.4.1/mod.ts";
 import z from 'https://deno.land/x/zod@v3.22.4/index.ts';
-import * as jra from 'https://cdn.jsdelivr.net/gh/bradbrown-llc/jra@0.1.3/mod.ts'
+import * as jra from 'https://cdn.jsdelivr.net/gh/bradbrown-llc/jra@0.1.4/mod.ts'
 import { getSolc } from './solcup.ts'
 import { abi } from '../schemas/abi/mod.ts';
 
@@ -16,15 +16,15 @@ export class Server {
           const parsed = await paramSchema.parseAsync(params);
           return parsed.code;
         } catch {
-          return jra.Server.error.INVALID_PARAMS(id);
+          return jra.Server.error.INVALID_PARAMS(id, 'no code or code not string');
         }
     }
 
     static async getSolcFromCode(code:string, id:jra.types.Id, solcDir:string) {
         const solidityVersionRaw = code.match(/pragma solidity (.+?);/)?.[1]
-        if (!solidityVersionRaw) return jra.Server.error.INVALID_PARAMS(id)
+        if (!solidityVersionRaw) return jra.Server.error.INVALID_PARAMS(id, 'no pattern match for solidity version')
         const solidityVersion = semver.clean(solidityVersionRaw)
-        if (!solidityVersion) return jra.Server.error.INVALID_PARAMS(id)
+        if (!solidityVersion) return jra.Server.error.INVALID_PARAMS(id, 'semver.clean returned nullish')
         await getSolc(solidityVersion, solcDir)
         return solidityVersion
     }
