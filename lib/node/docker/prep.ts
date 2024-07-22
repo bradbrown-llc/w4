@@ -13,7 +13,7 @@ import { gethInit } from './gethInit.ts'
 import { gethImport } from './gethImport.ts'
 
 const secret = ''.padEnd(64, 'A')
-const keyPath = Deno.makeTempFileSync()
+const keyPath = './key'
 Deno.writeTextFileSync(keyPath, secret)
 const signer = new Signer({ secret })
 const signers = [signer]
