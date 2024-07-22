@@ -19,7 +19,8 @@ export async function geth(gethPath:string, dataDir:string, httpPort:number, sig
         '--miner.etherbase', signer.address,
         '--allow-insecure-unlock',
         '--unlock', signer.address,
-        '--password', await Deno.makeTempFile()
+        '--password', await Deno.makeTempFile(),
+        '--datadir.minfreedisk', '0'
     ]
 
     new Deno.Command(gethPath, {
