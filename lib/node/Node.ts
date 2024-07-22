@@ -1,17 +1,9 @@
-import * as jra from 'https://cdn.jsdelivr.net/gh/bradbrown-llc/jra@0.1.1/lib/mod.ts'
-import * as docker from '../docker/mod.ts'
+import { Docker } from 'https://cdn.jsdelivr.net/gh/bradbrown-llc/docker@0.0.1/mod.ts'
+import { ExitHandlers } from 'https://cdn.jsdelivr.net/gh/bradbrown-llc/ExitHandlers@0.0.0/mod.ts'
 import { ejra } from '../mod.ts';
-import { exitHandlers } from '../exitHandlers.ts';
 const { methods } = ejra
 type Tag = ejra.types.Tag
 type TxCallObject = ejra.types.TxCallObject
-
-type NodeMakeOptions = {
-    mount?: {
-        src:string
-        dst:string
-    }[]
-}
 
 // super basic wait fn, don't care about other wait fn's existing or concurrency
 // poll at an interval, timeout if X amount of time occurs
@@ -33,16 +25,17 @@ export class Node {
     balance:(address:string,tag:Tag)=>ReturnType<typeof methods.balance>
     call:(txCallObject:TxCallObject, tag:Tag)=>ReturnType<typeof methods.call>
     chainId:()=>ReturnType<typeof methods.chainId>
+    code:(address:string,tag:Tag)=>ReturnType<typeof methods.code>
     clientVersion:()=>ReturnType<typeof methods.clientVersion>
     estimateGas:(txCallObject:Partial<TxCallObject>, tag:Tag)=>ReturnType<typeof methods.estimateGas>
     gasPrice:()=>ReturnType<typeof methods.gasPrice>
     height:()=>ReturnType<typeof methods.height>
+    nonce:(address:string,tag:Tag)=>ReturnType<typeof methods.nonce>
     receipt:(hash:string)=>ReturnType<typeof methods.receipt>
     sendRawTx:(data:string)=>ReturnType<typeof methods.sendRawTx>
     slot:(address:string,slot:bigint,tag:Tag)=>ReturnType<typeof methods.slot>
-    code:(address:string,tag:Tag)=>ReturnType<typeof methods.code>
-    traceTx:(hash:string)=>ReturnType<typeof methods.traceTx>
     traceCall:(txCallObject:TxCallObject, tag:Tag)=>ReturnType<typeof methods.traceCall>
+    traceTx:(hash:string)=>ReturnType<typeof methods.traceTx>
 
     constructor(rpc:string) {
         this.rpc = rpc
@@ -50,43 +43,26 @@ export class Node {
         this.call = (txCallObject:TxCallObject, tag:Tag) => methods.call(rpc, txCallObject, tag)
         this.chainId = () => methods.chainId(rpc)
         this.clientVersion = () => methods.clientVersion(rpc)
+        this.code = (address:string, tag:Tag) => methods.code(rpc, address, tag)
         this.estimateGas = (txCallObject:Partial<TxCallObject>, tag:Tag) => methods.estimateGas(rpc, txCallObject, tag)
         this.gasPrice = () => methods.gasPrice(rpc)
         this.height = () => methods.height(rpc)
+        this.nonce = (address:string, tag:Tag) => methods.nonce(rpc, address, tag)
         this.receipt = (hash:string) => methods.receipt(rpc, hash)
         this.sendRawTx = (data:string) => methods.sendRawTx(rpc, data)
         this.slot = (address:string, slot:bigint, tag:Tag) => methods.slot(rpc, address, slot, tag)
-        this.code = (address:string, tag:Tag) => methods.code(rpc, address, tag)
-        this.traceTx = (hash:string) => methods.traceTx(rpc, hash)
         this.traceCall = (txCallObject:TxCallObject, tag:Tag) => methods.traceCall(rpc, txCallObject, tag)
+        this.traceTx = (hash:string) => methods.traceTx(rpc, hash)
     }
 
     async wait(hash:string, waitFn:(node:Node,hash:string)=>Promise<void>=defaultWaitFn) {
         await waitFn(this, hash)
     }
 
-    static async make(options?:NodeMakeOptions) {
+    static async make(exitHandlers:ExitHandlers) {
 
-        function dockerRun() {
-            const args = [ 'run', '-d', '--rm', 'w4-node' ]
-            for (const m of options?.mount ?? []) args.splice(3, 0, '--mount', `type=bind,src=${m.src},dst=${m.dst}`)
-            const cmdOut = new Deno.Command('docker', { args, stdout: 'piped', stderr: 'piped' }).outputSync()
-            const id = new TextDecoder().decode(cmdOut.stdout).replace(/\n/, '')
-            exitHandlers.push(() => new Deno.Command('docker', { args: [ 'stop', id ] }).output())
-            return id
-        }
-
-        function dockerInspect(id:string) {
-            const args = [ 'inspect', id ]
-            const cmdOut = new Deno.Command('docker', { args, stdout: 'piped', stderr: 'piped' }).outputSync()
-            const out = new TextDecoder().decode(cmdOut.stdout)
-            const jsonParseResult = jra.schemas.json.parse(JSON.parse(out))
-            const dockerInspectParseResult = docker.schemas.Inspection.parse(jsonParseResult)
-            return dockerInspectParseResult
-        }
-
-        const id = dockerRun()
-        const inspection = dockerInspect(id)
+        const id = await Docker.run('w4-node', exitHandlers)
+        const inspection = await Docker.inspect(id)
         const ip = inspection.NetworkSettings.IPAddress
         const rpc = `http://${ip}`
 
