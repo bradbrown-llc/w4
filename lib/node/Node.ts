@@ -1,6 +1,10 @@
+import jsSha3 from 'npm:js-sha3@0.9.2'
+const { keccak256 } = jsSha3
+import { encode } from 'npm:@ethereumjs/rlp@5.0.1'
+import { hexToBytes } from 'npm:@noble/hashes@1.3.3/utils'
 import { Docker } from 'https://cdn.jsdelivr.net/gh/bradbrown-llc/docker@0.0.1/mod.ts'
 import { ExitHandlers } from 'https://cdn.jsdelivr.net/gh/bradbrown-llc/ExitHandlers@0.0.0/mod.ts'
-import { ejra } from '../mod.ts';
+import { Signer, ejra } from '../mod.ts'
 const { methods } = ejra
 type Tag = ejra.types.Tag
 type TxCallObject = ejra.types.TxCallObject
@@ -8,8 +12,8 @@ type TxCallObject = ejra.types.TxCallObject
 // super basic wait fn, don't care about other wait fn's existing or concurrency
 // poll at an interval, timeout if X amount of time occurs
 async function defaultWaitFn(node:Node, hash:string) {
-    const interval = 250
-    const timeout = 30000
+    const interval = 100
+    const timeout = 5000
     const start = Date.now()
     while (true) {
         const receipt = await node.receipt(hash)
@@ -34,7 +38,7 @@ export class Node {
     receipt:(hash:string)=>ReturnType<typeof methods.receipt>
     sendRawTx:(data:string)=>ReturnType<typeof methods.sendRawTx>
     slot:(address:string,slot:bigint,tag:Tag)=>ReturnType<typeof methods.slot>
-    traceCall:(txCallObject:TxCallObject, tag:Tag)=>ReturnType<typeof methods.traceCall>
+    traceCall:(txCallObject:Partial<TxCallObject>, tag:Tag)=>ReturnType<typeof methods.traceCall>
     traceTx:(hash:string)=>ReturnType<typeof methods.traceTx>
 
     constructor(rpc:string) {
@@ -51,12 +55,29 @@ export class Node {
         this.receipt = (hash:string) => methods.receipt(rpc, hash)
         this.sendRawTx = (data:string) => methods.sendRawTx(rpc, data)
         this.slot = (address:string, slot:bigint, tag:Tag) => methods.slot(rpc, address, slot, tag)
-        this.traceCall = (txCallObject:TxCallObject, tag:Tag) => methods.traceCall(rpc, txCallObject, tag)
+        this.traceCall = (txCallObject:Partial<TxCallObject>, tag:Tag) => methods.traceCall(rpc, txCallObject, tag)
         this.traceTx = (hash:string) => methods.traceTx(rpc, hash)
     }
 
     async wait(hash:string, waitFn:(node:Node,hash:string)=>Promise<void>=defaultWaitFn) {
         await waitFn(this, hash)
+    }
+
+    async deploy(signer:Signer, bytecode:string, args:string='') {
+        const from = signer.address
+        const input = `0x${bytecode}${args}`
+        const nonce = await this.nonce(signer.address, 'latest')
+        const gasLimit = await this.estimateGas({ from, input }, 'latest')
+        const gasPrice = await this.gasPrice()
+        const data = input
+        const chainId = await this.chainId()
+        const signedTx = signer.signTx({ gasLimit, gasPrice, data, nonce, chainId })
+        const address = `0x${keccak256(encode([signer.address, nonce])).slice(-40)}`
+        const hash = `0x${keccak256(hexToBytes(signedTx.slice(2)))}`
+        const contract = { address, hash }
+        this.sendRawTx(signedTx)
+        await this.wait(contract.hash)
+        return contract
     }
 
     static async make(exitHandlers:ExitHandlers) {
