@@ -13,7 +13,7 @@ export async function traceCall(rpc: string, txCallObject:Partial<TxCallObject>,
         ...(value ? { gas: `0x${value.toString(16)}` } : {})
       } as {
         from?:string
-        to:string
+        to?:string
         gas?:string
         gasPrice?:string
         value?:string
