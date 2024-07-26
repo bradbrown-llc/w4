@@ -2,8 +2,8 @@ import jsSha3 from 'npm:js-sha3@0.9.2'
 const { keccak256 } = jsSha3
 import { encode } from 'npm:@ethereumjs/rlp@5.0.1'
 import { hexToBytes } from 'npm:@noble/hashes@1.3.3/utils'
-import { Docker } from 'https://cdn.jsdelivr.net/gh/bradbrown-llc/docker@0.0.1/mod.ts'
-import { ExitHandlers } from 'https://cdn.jsdelivr.net/gh/bradbrown-llc/ExitHandlers@0.0.0/mod.ts'
+import { Docker } from 'https://cdn.jsdelivr.net/gh/bradbrown-llc/docker@0.0.4/mod.ts'
+import { ExitHandlers } from 'https://cdn.jsdelivr.net/gh/bradbrown-llc/exit-handlers@0.0.1/mod.ts'
 import { Signer, ejra } from '../mod.ts'
 const { methods } = ejra
 type Tag = ejra.types.Tag
